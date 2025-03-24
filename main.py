@@ -29,7 +29,7 @@ app.add_middleware(
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 #DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
 #DATABASE_URL = os.getenv('DATABASE_URL', 
-DATABASE_URL = 'sqlite:////tmp/news.db'
+DATABASE_URL = 'sqlite:////home/site/news.db'
 
 # Banco de Dados
 Base = declarative_base()
@@ -141,19 +141,19 @@ def test_sentiment():
     score = analyzer.polarity_scores(text)
     return {"text": text, "score": score}
 
-# ✅ Novo endpoint para criar banco e testar escrita no /tmp/
 @app.get("/create-database")
 def create_database():
     try:
         Base.metadata.create_all(bind=engine)
         
-        # Teste de gravação no diretório /tmp/
-        with open("/tmp/test_success.txt", "w") as f:
-            f.write("Teste de escrita bem-sucedido no diretório /tmp/.")
+        # Criar um arquivo de teste no diretório persistente /home/site/
+        with open("/home/site/backend_test.txt", "w") as f:
+            f.write("Teste de gravação bem-sucedido no diretório /home/site/.")
         
-        return {"message": "Database created successfully, and test file written in /tmp/."}
+        return {"message": "Database created successfully, and test file written in /home/site/."}
     except Exception as e:
         return {"error": str(e)}
+
 
 @app.get("/check-directory")
 def check_directory():
