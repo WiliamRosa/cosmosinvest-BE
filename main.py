@@ -1,12 +1,9 @@
-# main.py
-
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 import requests
 import os
 from typing import List, Dict, Any
 from datetime import datetime
-import json
 import nltk
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
@@ -37,14 +34,12 @@ Base = declarative_base()
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
-
 
 class News(Base):
     __tablename__ = 'news'
@@ -58,35 +53,29 @@ class News(Base):
     source = Column(String)
     published_at = Column(DateTime)
 
-
 Base.metadata.create_all(bind=engine)
-
 
 class NewsResponse(BaseModel):
     status: str
     totalResults: int
     articles: List[Dict[str, Any]]
 
-
 analyzer = SentimentIntensityAnalyzer()
-
 
 CATEGORIES = {
     "empresa": ["Apple", "Amazon", "Microsoft", "Tesla", "Google", "Meta"],
     "setor_agrícola": ["Agriculture", "Farming", "Crops", "Fertilizers", "Commodities"],
     "setor_petrolífero": ["Oil", "Petroleum", "Gas", "Energy", "Exxon", "Shell"],
     "setor_bancário": ["Bank", "Finance", "Investment", "Credit", "JP Morgan", "Goldman Sachs"],
-    "setor_saúde": ["Health", "Pharmaceutical", "Hospitals", "Biotechnology", "Pfizer", "Moderna", "Johnson & Johnson"],
+    "setor_saúde": ["Health", "Pharmaceutical", "Hospitals", "Biotechnology", "Pfizer", "Moderna"],
     "decisões_políticas": ["Government", "Policy", "Regulation", "Law", "President", "Minister"]
 }
-
 
 def categorize_article(text: str) -> str:
     for category, keywords in CATEGORIES.items():
         if any(keyword.lower() in text.lower() for keyword in keywords):
             return category
     return "outros"
-
 
 def analyze_sentiment(text: str) -> str:
     score = analyzer.polarity_scores(text)
@@ -97,17 +86,39 @@ def analyze_sentiment(text: str) -> str:
     else:
         return 'neutral'
 
+@app.get("/health")
+def health_check():
+    return {"status": "Server is running", "timestamp": datetime.now().isoformat()}
 
-def fetch_news_from_newsapi(query: str) -> NewsResponse:
+@app.get("/fetch-news/{query}")
+def fetch_news(query: str, db: Session = Depends(get_db)):
     url = f'https://newsapi.org/v2/everything?q={query}&language=en&apiKey={NEWS_API_KEY}'
     response = requests.get(url)
 
     if response.status_code != 200:
         raise HTTPException(status_code=response.status_code, detail=f"Error fetching news: {response.text}")
 
-    return NewsResponse(**response.json())
+    data = response.json()
+    for article in data.get("articles", []):
+        sentiment = analyze_sentiment(article["title"])
+        category = categorize_article(article["title"])
+        
+        news_item = News(
+            title=article["title"],
+            description=article.get("description", ""),
+            content=article.get("content", ""),
+            sentiment=sentiment,
+            category=category,
+            source=article.get("source", {}).get("name", "Unknown"),
+            published_at=datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
+        )
+        
+        db.add(news_item)
+    
+    db.commit()
+    return {"status": data["status"], "totalResults": data["totalResults"], "articles": data["articles"]}
 
-
-@app.get("/health")
-def health_check():
-    return {"status": "Server is running", "timestamp": datetime.now().isoformat()}
+@app.get("/news")
+def get_news(db: Session = Depends(get_db)):
+    news_items = db.query(News).all()
+    return [{"title": n.title, "description": n.description, "sentiment": n.sentiment, "category": n.category, "source": n.source, "published_at": n.published_at} for n in news_items]
