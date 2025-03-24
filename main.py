@@ -166,3 +166,25 @@ def check_directory():
             return {"message": "O backend NÃO conseguiu encontrar o arquivo kudu_test.txt.", "file_path": file_path}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/check-path")
+def check_path():
+    try:
+        # Diretório atual onde o backend está tentando salvar arquivos
+        current_directory = os.getcwd()
+
+        # Listar arquivos e diretórios visíveis para o backend
+        files = os.listdir(current_directory)
+        
+        # Verificar permissões de gravação
+        test_file_path = os.path.join(current_directory, "write_test.txt")
+        with open(test_file_path, "w") as f:
+            f.write("Teste de escrita bem-sucedido.")
+        
+        return {
+            "current_directory": current_directory,
+            "files": files,
+            "write_test_file": "write_test.txt criado com sucesso.",
+        }
+    except Exception as e:
+        return {"error": str(e)}
