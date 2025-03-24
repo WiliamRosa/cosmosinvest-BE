@@ -154,3 +154,15 @@ def create_database():
         return {"message": "Database created successfully, and test file written in /tmp/."}
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/check-directory")
+def check_directory():
+    try:
+        # Verificar se o arquivo kudu_test.txt é visível pelo backend
+        file_path = "/tmp/kudu_test.txt"
+        if os.path.exists(file_path):
+            return {"message": "O arquivo kudu_test.txt foi encontrado pelo backend.", "file_path": file_path}
+        else:
+            return {"message": "O backend NÃO conseguiu encontrar o arquivo kudu_test.txt.", "file_path": file_path}
+    except Exception as e:
+        return {"error": str(e)}
