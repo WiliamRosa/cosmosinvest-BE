@@ -38,4 +38,4 @@ jobs:
 
     - name: Configure Startup Command
       run: |
-        az webapp config set --resource-group rgcosmosdata --name cosmosinvestApp --startup-file "uvicorn main:app --host 0.0.0.0 --port 8000"
+        az webapp config set --resource-group rgcosmosdata --name cosmosinvestApp --startup-file "/home/site/wwwroot/startup.sh"
