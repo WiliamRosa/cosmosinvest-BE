@@ -188,3 +188,9 @@ def check_path():
         }
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/test-sentiment-analysis")
+def test_sentiment_analysis():
+    test_text = "The stock market is performing very well today."
+    score = analyzer.polarity_scores(test_text)
+    return {"text": test_text, "score": score}
