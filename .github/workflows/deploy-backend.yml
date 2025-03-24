@@ -18,20 +18,10 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install Dependencies and Prepare Environment
+    - name: Install Dependencies (Locally)
       run: |
-        # Cria o ambiente virtual
-        python -m venv antenv
-        
-        # Ativa o ambiente virtual
-        source antenv/bin/activate
-        
-        # Atualiza o pip e instala dependências
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
-        # Garante que o diretório antenv é movido para o diretório correto
-        mv antenv /home/site/wwwroot/
 
     - name: Login to Azure
       uses: azure/login@v1
@@ -40,7 +30,7 @@ jobs:
 
     - name: Zip Files for Deployment
       run: |
-        zip -r app.zip .   # Compacta todos os arquivos do projeto
+        zip -r app.zip .  # Compacta todos os arquivos do projeto
 
     - name: Deploy to Azure
       run: |
@@ -48,4 +38,4 @@ jobs:
 
     - name: Configure Startup Command
       run: |
-        az webapp config set --resource-group rgcosmosdata --name cosmosinvestApp --startup-file "uvicorn main:app --host 0.0.0.0 --port 8000"
+        az webapp config set --resource-group rgcosmosdata --name cosmosinvestApp --startup-file "python3 -m venv /home/site/wwwroot/antenv && source /home/site/wwwroot/antenv/bin/activate && pip install -r /home/site/wwwroot/requirements.txt && uvicorn main:app --host 0.0.0.0 --port 8000"
