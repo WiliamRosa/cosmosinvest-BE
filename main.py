@@ -148,8 +148,8 @@ def create_database():
         Base.metadata.create_all(bind=engine)
         
         # Teste de gravação no diretório /tmp/
-        with open("/tmp/test.txt", "w") as f:
-            f.write("Teste de escrita bem-sucedido.")
+        with open("/tmp/test_success.txt", "w") as f:
+            f.write("Teste de escrita bem-sucedido no diretório /tmp/.")
         
         return {"message": "Database created successfully, and test file written in /tmp/."}
     except Exception as e:
