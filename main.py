@@ -28,7 +28,9 @@ app.add_middleware(
 # Ambiente
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
 #DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:////home/site/news.db')
+#DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:////home/site/news.db')
+DATABASE_URL = 'sqlite:////tmp/news.db'
+
 
 
 # Banco de Dados
