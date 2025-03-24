@@ -15,7 +15,7 @@ source $VENV_DIR/bin/activate
 pip install --upgrade pip
 
 # Instalar dependências
-pip install -r requirements.txt
+pip install -r /home/site/wwwroot/requirements.txt
 
 # Rodar a aplicação FastAPI
-uvicorn main:app --host 0.0.0.0 --port 8000
+exec uvicorn main:app --host 0.0.0.0 --port 8000

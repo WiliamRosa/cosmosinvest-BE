@@ -28,14 +28,6 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: Zip Files for Deployment
-      run: |
-        zip -r app.zip .
-
     - name: Deploy to Azure
       run: |
-        az webapp deploy --resource-group rgcosmosdata --name cosmosinvestApp --src-path app.zip
-
-    - name: Configure Startup Command
-      run: |
-        az webapp config set --resource-group rgcosmosdata --name cosmosinvestApp --startup-file "/home/site/wwwroot/startup.sh"
+        az webapp up --name cosmosinvestApp --resource-group rgcosmosdata --sku B1 --runtime "PYTHON:3.9"
