@@ -105,7 +105,10 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
     for article in data.get("articles", []):
         sentiment = analyze_sentiment(article["title"])
         category = categorize_article(article["title"])
-        
+
+        # 🚨 Print para garantir que o sentimento está sendo gerado
+        print(f"Sentimento gerado: {sentiment} para o título: {article['title']}")        
+
         news_item = News(
             title=article["title"],
             description=article.get("description", ""),
