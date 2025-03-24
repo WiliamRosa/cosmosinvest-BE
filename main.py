@@ -52,6 +52,7 @@ class News(Base):
     category = Column(String)
     source = Column(String)
     published_at = Column(DateTime)
+    url = Column(String)  # Adiciona o link da notícia
 
 Base.metadata.create_all(bind=engine)
 
@@ -110,7 +111,8 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
             sentiment=sentiment,
             category=category,
             source=article.get("source", {}).get("name", "Unknown"),
-            published_at=datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ")
+            published_at=datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ"),
+            url=article.get("url")  # Salva o link da notícia
         )
         
         db.add(news_item)
@@ -121,4 +123,12 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
 @app.get("/news")
 def get_news(db: Session = Depends(get_db)):
     news_items = db.query(News).all()
-    return [{"title": n.title, "description": n.description, "sentiment": n.sentiment, "category": n.category, "source": n.source, "published_at": n.published_at} for n in news_items]
+    return [{
+        "title": n.title, 
+        "description": n.description, 
+        "sentiment": n.sentiment, 
+        "category": n.category, 
+        "source": n.source, 
+        "published_at": n.published_at,
+        "url": n.url  # Retorna o link da notícia
+    } for n in news_items]
