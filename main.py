@@ -157,43 +157,20 @@ def create_database():
     except Exception as e:
         return {"error": str(e)}
 
-
-@app.get("/check-directory")
-def check_directory():
+@app.get("/analyze-sentiment/")
+def analyze_sentiment_api(text: str):
+    """
+    Analisar o sentimento de um texto passado como parâmetro.
+    """
     try:
-        # Verificar se o arquivo kudu_test.txt é visível pelo backend
-        file_path = "/tmp/kudu_test.txt"
-        if os.path.exists(file_path):
-            return {"message": "O arquivo kudu_test.txt foi encontrado pelo backend.", "file_path": file_path}
+        score = analyzer.polarity_scores(text)
+        if score['compound'] >= 0.05:
+            sentiment = 'positive'
+        elif score['compound'] <= -0.05:
+            sentiment = 'negative'
         else:
-            return {"message": "O backend NÃO conseguiu encontrar o arquivo kudu_test.txt.", "file_path": file_path}
+            sentiment = 'neutral'
+            
+        return {"sentiment": sentiment, "score": score}
     except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/check-path")
-def check_path():
-    try:
-        # Diretório atual onde o backend está tentando salvar arquivos
-        current_directory = os.getcwd()
-
-        # Listar arquivos e diretórios visíveis para o backend
-        files = os.listdir(current_directory)
-        
-        # Verificar permissões de gravação
-        test_file_path = os.path.join(current_directory, "write_test.txt")
-        with open(test_file_path, "w") as f:
-            f.write("Teste de escrita bem-sucedido.")
-        
-        return {
-            "current_directory": current_directory,
-            "files": files,
-            "write_test_file": "write_test.txt criado com sucesso.",
-        }
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/test-sentiment-analysis")
-def test_sentiment_analysis():
-    test_text = "The stock market is performing very well today."
-    score = analyzer.polarity_scores(test_text)
-    return {"text": test_text, "score": score}
+        raise HTTPException(status_code=500, detail=str(e))
