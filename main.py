@@ -27,7 +27,9 @@ app.add_middleware(
 
 # Ambiente
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
+#DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:////home/site/news.db')
+
 
 # Banco de Dados
 Base = declarative_base()
@@ -138,3 +140,8 @@ def test_sentiment():
     text = "The stock market is performing very well today."
     score = analyzer.polarity_scores(text)
     return {"text": text, "score": score}
+
+@app.get("/create-database")
+def create_database():
+    Base.metadata.create_all(bind=engine)
+    return {"message": "Database created successfully"}
