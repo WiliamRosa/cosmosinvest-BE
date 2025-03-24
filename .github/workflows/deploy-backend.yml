@@ -1,0 +1,31 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Deploy to Azure
+      run: |
+        az webapp up --name cosmosinvestApp --resource-group rgcosmosdata --sku B1 --runtime "PYTHON:3.9"
+      env:
+        AZURE_WEBAPP_NAME: cosmosinvestApp
+        AZURE_RESOURCE_GROUP: rgcosmosdata
