@@ -23,9 +23,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
     - name: Deploy to Azure
       run: |
         az webapp up --name cosmosinvestApp --resource-group rgcosmosdata --sku B1 --runtime "PYTHON:3.9"
-      env:
-        AZURE_WEBAPP_NAME: cosmosinvestApp
-        AZURE_RESOURCE_GROUP: rgcosmosdata
