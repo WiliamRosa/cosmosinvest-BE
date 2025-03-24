@@ -132,3 +132,9 @@ def get_news(db: Session = Depends(get_db)):
         "published_at": n.published_at,
         "url": n.url  # Retorna o link da notícia
     } for n in news_items]
+
+@app.get("/test-sentiment")
+def test_sentiment():
+    text = "The stock market is performing very well today."
+    score = analyzer.polarity_scores(text)
+    return {"text": text, "score": score}
