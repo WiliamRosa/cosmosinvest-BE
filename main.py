@@ -28,8 +28,7 @@ app.add_middleware(
 
 # Ambiente
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-#DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
-#DATABASE_URL = os.getenv('DATABASE_URL', 
+GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
 DATABASE_URL = 'sqlite:////home/site/news.db'
 
 # Banco de Dados
@@ -55,14 +54,9 @@ class News(Base):
     category = Column(String)
     source = Column(String)
     published_at = Column(DateTime)
-    url = Column(String)  # Adiciona o link da notícia
+    url = Column(String)
 
 Base.metadata.create_all(bind=engine)
-
-class NewsResponse(BaseModel):
-    status: str
-    totalResults: int
-    articles: List[Dict[str, Any]]
 
 analyzer = SentimentIntensityAnalyzer()
 
@@ -106,10 +100,7 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
     for article in data.get("articles", []):
         sentiment = analyze_sentiment(article["title"])
         category = categorize_article(article["title"])
-
-        # 🚨 Print para garantir que o sentimento está sendo gerado
-        print(f"Sentimento gerado: {sentiment} para o título: {article['title']}")        
-
+        
         news_item = News(
             title=article["title"],
             description=article.get("description", ""),
@@ -118,7 +109,7 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
             category=category,
             source=article.get("source", {}).get("name", "Unknown"),
             published_at=datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ"),
-            url=article.get("url")  # Salva o link da notícia
+            url=article.get("url")
         )
         
         db.add(news_item)
@@ -130,51 +121,14 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
 def get_news(db: Session = Depends(get_db)):
     news_items = db.query(News).all()
     return [{
-        "title": n.title, 
-        "description": n.description, 
-        "sentiment": n.sentiment, 
-        "category": n.category, 
-        "source": n.source, 
+        "title": n.title,
+        "description": n.description,
+        "sentiment": n.sentiment,
+        "category": n.category,
+        "source": n.source,
         "published_at": n.published_at,
-        "url": n.url  # Retorna o link da notícia
+        "url": n.url
     } for n in news_items]
-
-@app.get("/test-sentiment")
-def test_sentiment():
-    text = "The stock market is performing very well today."
-    score = analyzer.polarity_scores(text)
-    return {"text": text, "score": score}
-
-@app.get("/create-database")
-def create_database():
-    try:
-        Base.metadata.create_all(bind=engine)
-        
-        # Criar um arquivo de teste no diretório persistente /home/site/
-        with open("/home/site/backend_test.txt", "w") as f:
-            f.write("Teste de gravação bem-sucedido no diretório /home/site/.")
-        
-        return {"message": "Database created successfully, and test file written in /home/site/."}
-    except Exception as e:
-        return {"error": str(e)}
-
-@app.get("/analyze-sentiment/")
-def analyze_sentiment_api(text: str):
-    """
-    Analisar o sentimento de um texto passado como parâmetro.
-    """
-    try:
-        score = analyzer.polarity_scores(text)
-        if score['compound'] >= 0.05:
-            sentiment = 'positive'
-        elif score['compound'] <= -0.05:
-            sentiment = 'negative'
-        else:
-            sentiment = 'neutral'
-            
-        return {"sentiment": sentiment, "score": score}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/fetch-google-news/{query}")
 def fetch_google_news(query: str):
@@ -194,3 +148,18 @@ def fetch_google_news(query: str):
         })
 
     return {"status": "ok", "totalResults": len(articles), "articles": articles}
+
+@app.get("/analyze-sentiment/")
+def analyze_sentiment_api(text: str):
+    try:
+        score = analyzer.polarity_scores(text)
+        if score['compound'] >= 0.05:
+            sentiment = 'positive'
+        elif score['compound'] <= -0.05:
+            sentiment = 'negative'
+        else:
+            sentiment = 'neutral'
+            
+        return {"sentiment": sentiment, "score": score}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
