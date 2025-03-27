@@ -9,7 +9,6 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from fastapi.middleware.cors import CORSMiddleware
-import feedparser
 
 # Download nltk data
 nltk.download('vader_lexicon')
@@ -175,22 +174,3 @@ def analyze_sentiment_api(text: str):
         return {"sentiment": sentiment, "score": score}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/fetch-google-news/{query}")
-def fetch_google_news(query: str):
-    url = f"https://news.google.com/rss/search?q={query}&hl=pt-BR&gl=BR&ceid=BR:pt"
-    feed = feedparser.parse(url)
-
-    if not feed.entries:
-        raise HTTPException(status_code=404, detail="Nenhuma notícia encontrada.")
-
-    articles = []
-    for entry in feed.entries:
-        articles.append({
-            "title": entry.title,
-            "description": entry.summary,
-            "url": entry.link,
-            "published_at": entry.published
-        })
-
-    return {"status": "ok", "totalResults": len(articles), "articles": articles}
