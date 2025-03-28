@@ -9,6 +9,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base, Session
 from fastapi.middleware.cors import CORSMiddleware
+import feedparser  # Importação para tratar o RSS do Google News
 
 # Download nltk data
 nltk.download('vader_lexicon')
@@ -27,8 +28,6 @@ app.add_middleware(
 
 # Ambiente
 NEWS_API_KEY = os.getenv('NEWS_API_KEY')
-#DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./news.db')
-#DATABASE_URL = os.getenv('DATABASE_URL', 
 DATABASE_URL = 'sqlite:////home/site/news.db'
 
 # Banco de Dados
@@ -57,11 +56,6 @@ class News(Base):
     url = Column(String)  # Adiciona o link da notícia
 
 Base.metadata.create_all(bind=engine)
-
-class NewsResponse(BaseModel):
-    status: str
-    totalResults: int
-    articles: List[Dict[str, Any]]
 
 analyzer = SentimentIntensityAnalyzer()
 
@@ -93,6 +87,25 @@ def analyze_sentiment(text: str) -> str:
 def health_check():
     return {"status": "Server is running", "timestamp": datetime.now().isoformat()}
 
+@app.get("/fetch-google-news/{query}")
+def fetch_google_news(query: str):
+    url = f"https://news.google.com/rss/search?q={query}&hl=pt-BR&gl=BR&ceid=BR:pt"
+    feed = feedparser.parse(url)
+
+    if not feed.entries:
+        raise HTTPException(status_code=404, detail="Nenhuma notícia encontrada.")
+
+    articles = []
+    for entry in feed.entries:
+        articles.append({
+            "title": entry.title,
+            "description": entry.summary,
+            "url": entry.link,
+            "published_at": entry.published
+        })
+
+    return {"status": "ok", "totalResults": len(articles), "articles": articles}
+
 @app.get("/fetch-news/{query}")
 def fetch_news(query: str, db: Session = Depends(get_db)):
     url = f'https://newsapi.org/v2/everything?q={query}&language=en&apiKey={NEWS_API_KEY}'
@@ -106,9 +119,6 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
         sentiment = analyze_sentiment(article["title"])
         category = categorize_article(article["title"])
 
-        # 🚨 Print para garantir que o sentimento está sendo gerado
-        print(f"Sentimento gerado: {sentiment} para o título: {article['title']}")        
-
         news_item = News(
             title=article["title"],
             description=article.get("description", ""),
@@ -117,7 +127,7 @@ def fetch_news(query: str, db: Session = Depends(get_db)):
             category=category,
             source=article.get("source", {}).get("name", "Unknown"),
             published_at=datetime.strptime(article["publishedAt"], "%Y-%m-%dT%H:%M:%SZ"),
-            url=article.get("url")  # Salva o link da notícia
+            url=article.get("url")
         )
         
         db.add(news_item)
@@ -135,33 +145,11 @@ def get_news(db: Session = Depends(get_db)):
         "category": n.category, 
         "source": n.source, 
         "published_at": n.published_at,
-        "url": n.url  # Retorna o link da notícia
+        "url": n.url
     } for n in news_items]
-
-@app.get("/test-sentiment")
-def test_sentiment():
-    text = "The stock market is performing very well today."
-    score = analyzer.polarity_scores(text)
-    return {"text": text, "score": score}
-
-@app.get("/create-database")
-def create_database():
-    try:
-        Base.metadata.create_all(bind=engine)
-        
-        # Criar um arquivo de teste no diretório persistente /home/site/
-        with open("/home/site/backend_test.txt", "w") as f:
-            f.write("Teste de gravação bem-sucedido no diretório /home/site/.")
-        
-        return {"message": "Database created successfully, and test file written in /home/site/."}
-    except Exception as e:
-        return {"error": str(e)}
 
 @app.get("/analyze-sentiment/")
 def analyze_sentiment_api(text: str):
-    """
-    Analisar o sentimento de um texto passado como parâmetro.
-    """
     try:
         score = analyzer.polarity_scores(text)
         if score['compound'] >= 0.05:
